@@ -41,6 +41,8 @@ struct FSession
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	int PlayerNum = 0;
+
+	bool operator==(const FSession& Other);
 };
 
 USTRUCT()

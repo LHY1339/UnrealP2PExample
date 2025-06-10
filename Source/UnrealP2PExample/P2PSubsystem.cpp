@@ -13,6 +13,16 @@ DECLARE_CYCLE_STAT(TEXT("P2PSubsystem Tick"), STAT_P2PSubsystemTick, STATGROUP_P
 #define TICK_SERVER_MAX_SLEEP_TIME 1.0f
 #define TICK_PING_MAX_SLEEP_TIME 1.0f
 
+bool FSession::operator==(const FSession& Other)
+{
+	return IP == Other.IP &&
+		Port == Other.Port &&
+		ID == Other.ID &&
+		Name == Other.Name &&
+		Level == Other.Level &&
+		PlayerNum == Other.PlayerNum;
+}
+
 void UP2PSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {
 	Super::Initialize(Collection);
@@ -49,7 +59,7 @@ void UP2PSubsystem::InitMessageSocket()
 	MessageSocket = FUdpSocketBuilder(TEXT("MessageSocket"))
 	                .AsReusable()
 	                .WithBroadcast()
-	                .WithSendBufferSize(1024);
+	                .WithSendBufferSize(2048);
 
 	TSharedRef<FInternetAddr> LocalAddr = ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM)->CreateInternetAddr();
 	LocalAddr->SetAnyAddress();
@@ -124,7 +134,7 @@ void UP2PSubsystem::TickPing(float DeltaTime)
 void UP2PSubsystem::TickRecv(float DeltaTime)
 {
 	InitMessageSocket();
-	uint8 Data[1024];
+	uint8 Data[2048];
 	int32 BytesReceived = 0;
 	if (MessageSocket->Recv(Data, sizeof(Data), BytesReceived))
 	{
@@ -231,7 +241,11 @@ void UP2PSubsystem::Ping(FString TargetIP, int TargetPort)
 
 void UP2PSubsystem::SetMySessionProperty(FString Name, int PlayerNum)
 {
-	MySession.Name = Name;
+	FString legit_name = Name;
+	legit_name.ReplaceInline(TEXT("\\"), TEXT("")); // 注意转义
+	legit_name.ReplaceInline(TEXT("/"), TEXT(""));
+	legit_name.ReplaceInline(TEXT("#"), TEXT(""));
+	MySession.Name = legit_name;
 	MySession.PlayerNum = PlayerNum;
 }
 
