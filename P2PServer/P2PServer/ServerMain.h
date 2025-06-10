@@ -16,6 +16,7 @@ struct FSession
 	std::string Level = "Init...";
 	int Count = 0;
 	int Time = 0;
+	bool UsePassword = false;
 };
 
 class AServerMain

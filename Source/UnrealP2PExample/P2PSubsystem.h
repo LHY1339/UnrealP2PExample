@@ -42,6 +42,9 @@ struct FSession
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	int PlayerNum = 0;
 
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	FString Password = "";
+
 	bool operator==(const FSession& Other);
 };
 
@@ -55,6 +58,9 @@ struct FPing
 
 	UPROPERTY()
 	int Port;
+
+	UPROPERTY()
+	FString Password = "";
 
 	UPROPERTY()
 	int Times = 2;
@@ -101,13 +107,13 @@ public:
 	void Ping(FString TargetIP, int TargetPort);
 
 	UFUNCTION(BlueprintCallable, Category="P2P")
-	void SetMySessionProperty(FString Name, int PlayerNum);
+	void SetMySessionProperty(FString Name, FString Password);
 
 	UFUNCTION(BlueprintCallable, Category="P2P")
 	FSession GetMySessionProperty();
 
 	UFUNCTION(BlueprintCallable, Category="P2P")
-	void Connect(FString IP, int Port);
+	void Connect(FString IP, int Port, FString Password);
 
 	UFUNCTION(BlueprintCallable, Category="P2P")
 	TArray<FSession> GetSessionList();

@@ -128,7 +128,7 @@ void AServerMain::CmdMessage(std::vector<std::string> Params, sockaddr_in InAddr
 
 void AServerMain::CmdListen(std::vector<std::string> Params, sockaddr_in InAddr)
 {
-	if (Params.size() >= 6 && Params[1] == "register")
+	if (Params.size() >= 7 && Params[1] == "register")
 	{
 		for (int i = 0; i < SessionList.size(); i++)
 		{
@@ -138,6 +138,7 @@ void AServerMain::CmdListen(std::vector<std::string> Params, sockaddr_in InAddr)
 				SessionList[i].Name = Params[3];
 				SessionList[i].Level = Params[4];
 				SessionList[i].Count = std::stoi(Params[5]);
+				SessionList[i].UsePassword = Params[6] == "true";
 				return;
 			}
 		}
@@ -146,14 +147,21 @@ void AServerMain::CmdListen(std::vector<std::string> Params, sockaddr_in InAddr)
 
 void AServerMain::CmdPingme(std::vector<std::string> Params, sockaddr_in InAddr)
 {
-	if (Params.size() >= 3 )
+	if (Params.size() >= 4 )
 	{
 		for (int i = 0; i < SessionList.size(); i++)
 		{
 			if (AStringStatic::GetIp(SessionList[i].Listen) == Params[1] &&
 				std::to_string(AStringStatic::GetPort(SessionList[i].Listen)) == Params[2])
 			{
-				const std::string send_back = "@ping#" + AStringStatic::GetIp(InAddr) + "#" + std::to_string(AStringStatic::GetPort(InAddr)) + "#\0";
+				const std::string send_back =
+					"@ping#" +
+					AStringStatic::GetIp(InAddr) +
+					"#" +
+					std::to_string(AStringStatic::GetPort(InAddr)) +
+					"#" +
+					Params[3] + 
+					"#\0";
 				Send(send_back, SessionList[i].Message);
 				return;
 			}
@@ -174,7 +182,8 @@ void AServerMain::CmdGet(std::vector<std::string> Params, sockaddr_in InAddr)
 			cur_session_str += std::to_string(SessionList[i].Id) + "/";
 			cur_session_str += SessionList[i].Name + "/";
 			cur_session_str += SessionList[i].Level + "/";
-			cur_session_str += std::to_string(SessionList[i].Count) + "/#";
+			cur_session_str += std::to_string(SessionList[i].Count) + "/";
+			cur_session_str += std::string(SessionList[i].UsePassword ? "true" : "false") + "/#";
 			send_str += cur_session_str;
 		}
 		Send(send_str, InAddr);

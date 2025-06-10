@@ -100,7 +100,8 @@ void UP2PSubsystem::TickServer(float DeltaTime)
 		const int session_id = MySession.ID;
 		const FString session_level = GetWorld()->GetName();
 		const int session_num = GetWorld()->GetAuthGameMode()->GetNumPlayers();
-		const FString send_message = FString::Printf(TEXT("@listen#register#%d#%s#%s#%d#\0"), session_id, *session_name, *session_level, session_num);
+		const FString session_password = MySession.Password.IsEmpty() ? "false" : "true";
+		const FString send_message = FString::Printf(TEXT("@listen#register#%d#%s#%s#%d#%s#\0"), session_id, *session_name, *session_level, session_num, *session_password);
 		SendMessageBySocket(ListenSocket, send_message, ServerIP, ServerPort);
 	}
 }
@@ -125,7 +126,7 @@ void UP2PSubsystem::TickPing(float DeltaTime)
 		InitListenSocket();
 		if (ListenSocket)
 		{
-			FString send_message = FString::Printf(TEXT("@ping_me#%s#%d#\0"), *PingList[i].IP, PingList[i].Port);
+			FString send_message = FString::Printf(TEXT("@ping_me#%s#%d#%s#\0"), *PingList[i].IP, PingList[i].Port, *PingList[i].Password);
 			SendMessageBySocket(ListenSocket, send_message, ServerIP, ServerPort);
 		}
 	}
@@ -175,11 +176,14 @@ void UP2PSubsystem::CmdID(TArray<FString> ParamList, FString RecvString)
 
 void UP2PSubsystem::CmdPing(TArray<FString> ParamList, FString RecvString)
 {
-	if (ParamList.Num() < 3)
+	if (ParamList.Num() < 4)
 	{
 		return;
 	}
-	Ping(ParamList[1], FCString::Atoi(*ParamList[2]));
+	if (MySession.Password.IsEmpty() || MySession.Password == ParamList[3])
+	{
+		Ping(ParamList[1], FCString::Atoi(*ParamList[2]));
+	}
 }
 
 void UP2PSubsystem::CmdSession(TArray<FString> ParamList, FString RecvString)
@@ -188,7 +192,7 @@ void UP2PSubsystem::CmdSession(TArray<FString> ParamList, FString RecvString)
 	for (int i = 0; i < ParamList.Num(); i++)
 	{
 		TArray<FString> session_param_list = UP2PFunctionLibrary::BreakString(ParamList[i], "/");
-		if (session_param_list.Num() < 6)
+		if (session_param_list.Num() < 7)
 		{
 			continue;
 		}
@@ -199,6 +203,7 @@ void UP2PSubsystem::CmdSession(TArray<FString> ParamList, FString RecvString)
 		new_session.Name = session_param_list[3];
 		new_session.Level = session_param_list[4];
 		new_session.PlayerNum = FCString::Atoi(*session_param_list[5]);
+		new_session.Password = session_param_list[6];
 		SessionList.Add(new_session);
 	}
 }
@@ -239,14 +244,14 @@ void UP2PSubsystem::Ping(FString TargetIP, int TargetPort)
 	SendMessageBySocket(ListenSocket, "@\0", TargetIP, TargetPort);
 }
 
-void UP2PSubsystem::SetMySessionProperty(FString Name, int PlayerNum)
+void UP2PSubsystem::SetMySessionProperty(FString Name, FString Password)
 {
 	FString legit_name = Name;
 	legit_name.ReplaceInline(TEXT("\\"), TEXT("")); // 注意转义
 	legit_name.ReplaceInline(TEXT("/"), TEXT(""));
 	legit_name.ReplaceInline(TEXT("#"), TEXT(""));
 	MySession.Name = legit_name;
-	MySession.PlayerNum = PlayerNum;
+	MySession.Password = Password;
 }
 
 FSession UP2PSubsystem::GetMySessionProperty()
@@ -254,13 +259,14 @@ FSession UP2PSubsystem::GetMySessionProperty()
 	return MySession;
 }
 
-void UP2PSubsystem::Connect(FString IP, int Port)
+void UP2PSubsystem::Connect(FString IP, int Port, FString Password)
 {
 	GetWorld()->GetFirstPlayerController()->ClientTravel(FString::Printf(TEXT("%s:%d"), *IP, Port), ETravelType::TRAVEL_Absolute);
 
 	FPing new_ping;
 	new_ping.IP = IP;
 	new_ping.Port = Port;
+	new_ping.Password = Password;
 	PingList.Add(new_ping);
 }
 
