@@ -34,7 +34,7 @@ struct FSession
 	int ID = -1;
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
-	FString Name = "MySession";
+	FString Name = "NULL";
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	FString Level = "NULL";
