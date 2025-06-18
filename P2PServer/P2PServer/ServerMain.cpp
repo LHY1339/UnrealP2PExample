@@ -54,7 +54,6 @@ void AServerMain::LoopRecv()
 
 			std::thread handle_thread(&AServerMain::HandleMessage, this, Utf8Str, addr_buffer);
 			handle_thread.detach();
-			//HandleMessage(Utf8Str, addr_buffer);
 		}
 	}
 }
@@ -77,19 +76,19 @@ void AServerMain::HandleMessage(std::string InStr, sockaddr_in InAddr)
 	{
 		return;
 	}
-	else if (param_list[0] == "@message")
+	else if (param_list[0] == "@mr")
 	{
 		CmdMessage(param_list, InAddr);
 	}
-	else if (param_list[0] == "@listen")
+	else if (param_list[0] == "@lr")
 	{
 		CmdListen(param_list, InAddr);
 	}
-	else if (param_list[0] == "@ping_me")
+	else if (param_list[0] == "@pm")
 	{
 		CmdPingme(param_list, InAddr);
 	}
-	else if (param_list[0] == "@get")
+	else if (param_list[0] == "@gs")
 	{
 		CmdGet(param_list, InAddr);
 	}
@@ -97,48 +96,44 @@ void AServerMain::HandleMessage(std::string InStr, sockaddr_in InAddr)
 
 void AServerMain::CmdMessage(std::vector<std::string> Params, sockaddr_in InAddr)
 {
-	if (Params.size() >= 2 && Params[1] == "register")
+	for (int i = 0; i < SessionList.size() && i < 30; i++)
 	{
-		for (int i = 0; i < SessionList.size() && i < 30; i++)
+		if (AStringStatic::GetIp(InAddr) == AStringStatic::GetIp(SessionList[i].Message) &&
+			AStringStatic::GetPort(InAddr) == AStringStatic::GetPort(SessionList[i].Message))
 		{
-			if (AStringStatic::GetIp(InAddr) == AStringStatic::GetIp(SessionList[i].Message)&&
-				AStringStatic::GetPort(InAddr) == AStringStatic::GetPort(SessionList[i].Message))
-			{
-				SessionList[i].Time = MaxConnectTime;
-				const std::string send_back = "@id#" + std::to_string(SessionList[i].Id) + "#\0";
-				Send(send_back, InAddr);
-				return;
-			}
+			SessionList[i].Time = MaxConnectTime;
+			const std::string send_back = "@id#" + std::to_string(SessionList[i].Id) + "#\0";
+			Send(send_back, InAddr);
+			return;
 		}
-		IDStart += std::rand() % 9 + 1;
-		FSession new_session;
-		new_session.Id = IDStart;
-		new_session.Message = InAddr;
-		new_session.Time = MaxConnectTime;
-		SessionList.push_back(new_session);
-		const std::string send_back = "@id#" + std::to_string(new_session.Id) + "#\0";
-		Send(send_back, InAddr);
-		std::cout
-			<< "New Session <" 
-			<< new_session.Id
-			<< ">" 
-			<< std::endl;
 	}
+	IDStart += std::rand() % 9 + 1;
+	FSession new_session;
+	new_session.Id = IDStart;
+	new_session.Message = InAddr;
+	new_session.Time = MaxConnectTime;
+	SessionList.push_back(new_session);
+	const std::string send_back = "@id#" + std::to_string(new_session.Id) + "#\0";
+	Send(send_back, InAddr);
+	std::cout
+		<< "New Session <"
+		<< new_session.Id
+		<< ">"
+		<< std::endl;
 }
 
 void AServerMain::CmdListen(std::vector<std::string> Params, sockaddr_in InAddr)
 {
-	if (Params.size() >= 7 && Params[1] == "register")
+	std::cout << "CmdListen" << std::endl;
+	if (Params.size() >= 4)
 	{
 		for (int i = 0; i < SessionList.size(); i++)
 		{
-			if (Params[2] == std::to_string(SessionList[i].Id))
+			if (Params[1] == std::to_string(SessionList[i].Id))
 			{
 				SessionList[i].Listen = InAddr;
-				SessionList[i].Name = Params[3];
-				SessionList[i].Level = Params[4];
-				SessionList[i].Count = std::stoi(Params[5]);
-				SessionList[i].UsePassword = Params[6] == "true";
+				SessionList[i].UsePassword = Params[2] == "t";
+				SessionList[i].Property = Params[3];
 				return;
 			}
 		}
@@ -147,6 +142,7 @@ void AServerMain::CmdListen(std::vector<std::string> Params, sockaddr_in InAddr)
 
 void AServerMain::CmdPingme(std::vector<std::string> Params, sockaddr_in InAddr)
 {
+	std::cout << "CmdPingme" << std::endl;
 	if (Params.size() >= 4 )
 	{
 		for (int i = 0; i < SessionList.size(); i++)
@@ -155,7 +151,7 @@ void AServerMain::CmdPingme(std::vector<std::string> Params, sockaddr_in InAddr)
 				std::to_string(AStringStatic::GetPort(SessionList[i].Listen)) == Params[2])
 			{
 				const std::string send_back =
-					"@ping#" +
+					"@p#" +
 					AStringStatic::GetIp(InAddr) +
 					"#" +
 					std::to_string(AStringStatic::GetPort(InAddr)) +
@@ -171,23 +167,19 @@ void AServerMain::CmdPingme(std::vector<std::string> Params, sockaddr_in InAddr)
 
 void AServerMain::CmdGet(std::vector<std::string> Params, sockaddr_in InAddr)
 {
-	if (Params.size() >= 2 && Params[1] == "session")
+	std::string send_str = "@s#";
+	for (int i = 0; i < SessionList.size(); i++)
 	{
-		std::string send_str = "@session#";
-		for (int i = 0; i < SessionList.size(); i++)
-		{
-			std::string cur_session_str = "";
-			cur_session_str += AStringStatic::GetIp(SessionList[i].Listen) + "/";
-			cur_session_str += std::to_string(AStringStatic::GetPort(SessionList[i].Listen)) + "/";
-			cur_session_str += std::to_string(SessionList[i].Id) + "/";
-			cur_session_str += SessionList[i].Name + "/";
-			cur_session_str += SessionList[i].Level + "/";
-			cur_session_str += std::to_string(SessionList[i].Count) + "/";
-			cur_session_str += std::string(SessionList[i].UsePassword ? "true" : "false") + "/#";
-			send_str += cur_session_str;
-		}
-		Send(send_str, InAddr);
+		std::string cur_session_str = "";
+		cur_session_str += AStringStatic::GetIp(SessionList[i].Listen) + "/";
+		cur_session_str += std::to_string(AStringStatic::GetPort(SessionList[i].Listen)) + "/";
+		cur_session_str += std::to_string(SessionList[i].Id) + "/";
+		cur_session_str += std::string(SessionList[i].UsePassword ? "t" : "f") + "/";
+		cur_session_str += SessionList[i].Property + "/#";
+		send_str += cur_session_str;
 	}
+	std::cout << send_str << std::endl;
+	Send(send_str, InAddr);
 }
 
 void AServerMain::ThreadTimer()

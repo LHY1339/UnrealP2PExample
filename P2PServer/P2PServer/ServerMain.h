@@ -12,9 +12,7 @@ struct FSession
 	sockaddr_in Message;
 	sockaddr_in Listen;
 	int Id = 0;
-	std::string Name = "Init...";
-	std::string Level = "Init...";
-	int Count = 0;
+	std::string Property = "Init...";
 	int Time = 0;
 	bool UsePassword = false;
 };

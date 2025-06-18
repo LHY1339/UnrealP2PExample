@@ -34,16 +34,10 @@ struct FSession
 	int ID = -1;
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
-	FString Name = "NULL";
-
-	UPROPERTY(BlueprintReadWrite, EditAnywhere)
-	FString Level = "NULL";
-
-	UPROPERTY(BlueprintReadWrite, EditAnywhere)
-	int PlayerNum = 0;
-
-	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	FString Password = "";
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	FString Property = "";
 
 	bool operator==(const FSession& Other);
 };
@@ -107,7 +101,10 @@ public:
 	void Ping(FString TargetIP, int TargetPort);
 
 	UFUNCTION(BlueprintCallable, Category="P2P")
-	void SetMySessionProperty(FString Name, FString Password);
+	void SetMySessionProperty(FString Property);
+
+	UFUNCTION(BlueprintCallable, Category="P2P")
+	void SetMySessionPassword(FString Password);
 
 	UFUNCTION(BlueprintCallable, Category="P2P")
 	FSession GetMySessionProperty();
@@ -120,6 +117,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category="P2P")
 	void FlushSessionList();
+
+	UFUNCTION(BlueprintCallable, Category="P2P")
+	FString GetLegalString(FString InStr);
 
 private:
 	bool IsInit = false;
